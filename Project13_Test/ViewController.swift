@@ -14,6 +14,7 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     @IBOutlet weak var intensity: UISlider!
     var currentImage: UIImage!
     var currentFilter: CIFilter!
+    var context: CIContext!
     
 
     override func viewDidLoad() {
@@ -21,6 +22,7 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
         // Do any additional setup after loading the view, typically from a nib.
         title = "InstaFilter"
         navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(importPicture))
+        context = CIContext()
         currentFilter = CIFilter(name: "CISepiaTone")
     }
     
@@ -68,8 +70,13 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     }
     
     @IBAction func save(_ sender: UIButton) {
-        UIImageWriteToSavedPhotosAlbum(imageView.image!, self, #selector(image(_:didFinishSavingWithError: contextInfo:)), nil)
-        
+        if let img = imageView.image{
+            UIImageWriteToSavedPhotosAlbum(img, self, #selector(image(_:didFinishSavingWithError: contextInfo:)), nil)
+        } else{
+            let ac = UIAlertController(title: "No Image!", message: "You have not imported an image to alter.", preferredStyle: .alert)
+            ac.addAction(UIAlertAction(title: "OK", style: .default))
+            present(ac, animated: true)
+        }
     }
     
     @objc func image(_ image: UIImage, didFinishSavingWithError error: Error?, contextInfo: UnsafeRawPointer){
@@ -86,8 +93,10 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
     
     func applyProcessing() {
         //currentFilter.setValue(intensity.value, forKey: kCIInputIntensityKey)
+        
+       
         let inputKeys = currentFilter.inputKeys
-        print(inputKeys)
+        //print(inputKeys)
         if inputKeys.contains(kCIInputIntensityKey){
             currentFilter.setValue(intensity.value, forKey: kCIInputIntensityKey)
         }
@@ -101,10 +110,15 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
             currentFilter.setValue(CIVector(x:currentImage.size.width / 2, y: currentImage.size.height / 2) , forKey: kCIInputCenterKey)
         }
         
-        if let ciimage =  currentFilter.outputImage{
-            let processedImage = UIImage(ciImage: ciimage)
-            self.imageView.image = processedImage
+        if let cgimg = context.createCGImage(currentFilter.outputImage!, from: currentFilter.outputImage!.extent){
+            let processedImage = UIImage(cgImage: cgimg)
+            imageView.image = processedImage
         }
+        
+//        if let ciimage =  currentFilter.outputImage{
+//            let processedImage = UIImage(ciImage: ciimage)
+//            self.imageView.image = processedImage
+//        }
       
     }
     
@@ -117,6 +131,7 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
         
         let beginImage = CIImage(image: currentImage)
         currentFilter.setValue(beginImage, forKey: kCIInputImageKey)
+        title = currentFilter.name
         
         applyProcessing()
     }
