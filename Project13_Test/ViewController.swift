@@ -9,6 +9,7 @@
 import UIKit
 
 class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+    //crashes if you play with sliders before an image is loadeda
     
     @IBOutlet weak var imageView: UIImageView!
     @IBOutlet weak var intensity: UISlider!
@@ -25,6 +26,11 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
         navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(importPicture))
         context = CIContext()
         currentFilter = CIFilter(name: "CISepiaTone")
+
+        if currentImage == nil {
+            intensity.isEnabled = false
+            radius.isEnabled = false
+        }
     }
     
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [String : Any]) {
@@ -102,23 +108,74 @@ class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavig
         
        
         let inputKeys = currentFilter.inputKeys
-        //print(inputKeys)
-        if inputKeys.contains(kCIInputIntensityKey){
+        
+        
+        if inputKeys.contains(where: {$0.contains(kCIInputIntensityKey) && $0.contains(kCIInputRadiusKey) && $0.contains(kCIInputCenterKey)}){
+            intensity.isEnabled = true
+            radius.isEnabled = true
             currentFilter.setValue(intensity.value, forKey: kCIInputIntensityKey)
-        }
-        if inputKeys.contains(kCIInputRadiusKey){
             currentFilter.setValue(radius.value * 300, forKey: kCIInputRadiusKey)
-        }
-        if inputKeys.contains(kCIInputScaleKey){
-            currentFilter.setValue(radius.value * 10, forKey: kCIInputScaleKey)
-        }
-        if inputKeys.contains(kCIInputCenterKey){
             currentFilter.setValue(CIVector(x:currentImage.size.width / 2, y: currentImage.size.height / 2) , forKey: kCIInputCenterKey)
         }
         
+        if inputKeys.contains(where: {$0.contains(kCIInputRadiusKey) && $0.contains(kCIInputScaleKey) && $0.contains(kCIInputCenterKey)}){
+            intensity.isEnabled = true
+            radius.isEnabled = true
+            currentFilter.setValue(radius.value * 300, forKey: kCIInputRadiusKey)
+            currentFilter.setValue(intensity.value * 10, forKey: kCIInputScaleKey)
+            currentFilter.setValue(CIVector(x:currentImage.size.width / 2, y: currentImage.size.height / 2) , forKey: kCIInputCenterKey)
+        }
+        
+        if inputKeys.contains(where: {$0.contains(kCIInputIntensityKey) && $0.contains(kCIInputRadiusKey)}){
+            intensity.isEnabled = true
+            radius.isEnabled = true
+            currentFilter.setValue(intensity.value, forKey: kCIInputIntensityKey)
+            currentFilter.setValue(radius.value * 300, forKey: kCIInputRadiusKey)
+            
+        }
+        
+        if (inputKeys.contains(where: {$0.contains(kCIInputRadiusKey) && $0.contains(kCIInputScaleKey)})){
+            intensity.isEnabled = true
+            radius.isEnabled = true
+            currentFilter.setValue(radius.value * 300, forKey: kCIInputRadiusKey)
+            currentFilter.setValue(intensity.value * 10, forKey: kCIInputScaleKey)
+        }
+        
+        if inputKeys.contains(where: {$0.contains(kCIInputCenterKey) && $0.contains(kCIInputScaleKey)}){
+            radius.isEnabled = false
+            intensity.isEnabled = true
+            currentFilter.setValue(intensity.value * 10, forKey: kCIInputScaleKey)
+            currentFilter.setValue(CIVector(x:currentImage.size.width / 2, y: currentImage.size.height / 2) , forKey: kCIInputCenterKey)
+        }
+        
+        if inputKeys.contains(kCIInputIntensityKey){
+            intensity.isEnabled = true
+            radius.isEnabled = false
+            currentFilter.setValue(intensity.value, forKey: kCIInputIntensityKey)
+        }
+        
+        if inputKeys.contains(kCIInputRadiusKey){
+            intensity.isEnabled = false
+            radius.isEnabled = true
+            currentFilter.setValue(radius.value * 300, forKey: kCIInputRadiusKey)
+        }
+        
+        if inputKeys.contains(kCIInputScaleKey) {
+            radius.isEnabled = false
+            intensity.isEnabled = true
+            currentFilter.setValue(intensity.value * 10, forKey: kCIInputScaleKey)
+        }
+        
+        if inputKeys.contains(kCIInputCenterKey){
+            currentFilter.setValue(CIVector(x:currentImage.size.width / 2, y: currentImage.size.height / 2) , forKey: kCIInputCenterKey)
+        }
+
         if let cgimg = context.createCGImage(currentFilter.outputImage!, from: currentFilter.outputImage!.extent){
             let processedImage = UIImage(cgImage: cgimg)
             imageView.image = processedImage
+        }
+        if currentImage != nil && currentFilter != nil{
+            title = currentFilter.name
         }
         
 //        if let ciimage =  currentFilter.outputImage{
